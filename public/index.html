@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <form>
+      <input type="text" id="input" />
+      <button id="search">SEARCH</button>
+      <!-- <button id="post">POST</button> -->
+    </form>
+
+    <script>
+      const searchBttn = document.getElementById("search");
+      const inputBttn = document.getElementById("input");
+
+      let filters = [3.5, 4, 4.5];
+      const parentElement = document.querySelector("body"); // DOM location when buttons will be added
+      filters.forEach(function (filter) {
+        const button = document.createElement("button");
+        button.innerText = filter;
+        parentElement.appendChild(button); // to add new element to DOM
+      });
+
+      const baseUrl = "http://localhost:3000/";
+
+      searchBttn.addEventListener("click", getInfo);
+      async function getInfo(e) {
+        e.preventDefault();
+
+        const res = await fetch(
+          baseUrl + "restaurants/english/" + input.value,
+          {
+            method: "GET",
+          }
+        );
+
+        const data = await res.json();
+        console.log(data);
+        // input.value = data.store_name;
+        // console.log(input.value);
+      }
+    </script>
+  </body>
+</html>
