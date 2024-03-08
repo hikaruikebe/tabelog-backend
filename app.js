@@ -82,6 +82,7 @@ app.get("/restaurants/english", async (req, res) => {
       },
       order: sequelize.random(),
     });
+    console.log("restaurants: ", restaurants);
 
     return res.send(restaurants);
   } else {
@@ -98,6 +99,7 @@ app.get("/restaurants/english", async (req, res) => {
       },
       order: [[sort_category, sort_direction]],
     });
+    console.log("restaurants: ", restaurants);
 
     return res.send(restaurants);
   }
