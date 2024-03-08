@@ -37,18 +37,17 @@ app.get("/status", (request, response) => {
 
 app.get("/restaurants/english", async (req, res) => {
   console.log(
-    "english: ",
-    req.query.store_name,
-    req.query.sort_value,
-    req.query.rating_min,
-    req.query.rating_max,
-    req.query.review_min,
-    req.query.review_max
+    "query: ",
+    "store name: " + req.query.store_name,
+    "sort value: " + req.query.sort_value,
+    "rating min: " + req.query.rating_min,
+    "rating max: " + req.query.rating_max,
+    "review min: " + req.query.review_min,
+    "review max: " + req.query.review_max
   );
 
   let store_name =
     req.query.store_name === undefined ? "" : req.query.store_name;
-  console.log("sort: " + req.query.sort_value);
   let sort_value =
     req.query.sort_value === undefined ? "Select Sort" : req.query.sort_value;
   let rating_min =
@@ -60,11 +59,9 @@ app.get("/restaurants/english", async (req, res) => {
   let review_max =
     req.query.review_max === undefined ? 10000 : req.query.review_max;
 
-  console.log("sort_value: ", sort_value);
   let sort_category = sort_dict.get(sort_value.split(" ")[0]);
   let sort_direction = sort_dict.get(sort_value.split(" ")[1]);
 
-  console.log(sort_value);
   if (!sort_value || sort_value === "Select Sort") {
     sort_category = "score";
     sort_direction = sequelize.literal("rand()");
@@ -82,7 +79,6 @@ app.get("/restaurants/english", async (req, res) => {
       },
       order: sequelize.random(),
     });
-    console.log("restaurants: ", restaurants);
 
     return res.send(restaurants);
   } else {
@@ -99,7 +95,6 @@ app.get("/restaurants/english", async (req, res) => {
       },
       order: [[sort_category, sort_direction]],
     });
-    console.log("restaurants: ", restaurants);
 
     return res.send(restaurants);
   }
@@ -143,7 +138,7 @@ app.get("/restaurants/english/:id", async (req, res) => {
 app.get("/restaurants/", (req, res) => {
   const id = req.params;
   const key = req.query;
-  // console.log(id, key);
+
   res.status(200).json({ info: "preset text" });
 });
 
