@@ -35,69 +35,100 @@ app.get("/status", (request, response) => {
   response.send(status);
 });
 
+const initializeRequest = (query) => {
+  let store_name = query.store_name === undefined ? "" : query.store_name;
+  let sort_value =
+    query.sort_value === undefined ? ["score", "random"] : query.sort_value;
+  let prefecture_value =
+    query.prefecture_value === undefined ? "random" : query.prefecture_value;
+  let rating_min = query.rating_min === undefined ? 0 : query.rating_min;
+  let rating_max = query.rating_max === undefined ? 5 : query.rating_max;
+  let review_min = query.review_min === undefined ? 0 : query.review_min;
+  let review_max = query.review_max === undefined ? 10000 : query.review_max;
+
+  return {
+    store_name,
+    sort_value,
+    prefecture_value,
+    rating_min,
+    rating_max,
+    review_min,
+    review_max,
+  };
+};
+
+const handleQuery = (request) => {
+  store_name = request.store_name;
+  sort_value = request.sort_value;
+  prefecture_value = request.prefecture_value;
+  rating_min = request.rating_min;
+  rating_max = request.rating_max;
+  review_min = request.review_min;
+  review_max = request.review_max;
+
+  let store_query = [
+    { store_name: { [Op.like]: "%" + store_name + "%" } },
+    { store_name_english: { [Op.like]: "%" + store_name + "%" } },
+  ];
+  let score_query = {
+    [Op.and]: { [Op.gte]: rating_min, [Op.lte]: rating_max },
+  };
+  let review_cnt_query = {
+    [Op.and]: { [Op.gte]: review_min, [Op.lte]: review_max },
+  };
+
+  let prefecture_query = { prefecture: { [Op.like]: "%%" } };
+  if (prefecture_value && prefecture_value != "random") {
+    prefecture_query = [];
+    for (const prefecture of prefecture_value) {
+      console.log(prefecture.value);
+      prefecture_query.push({
+        prefecture: { [Op.like]: "%" + prefecture.value + "%" },
+      });
+    }
+  }
+
+  let sort_category = sort_value[0];
+  let sort_direction = sort_value[1];
+  let order_query = sequelize.random();
+  if (sort_value && sort_direction != "random") {
+    order_query = [[sort_category, sort_direction]];
+  }
+
+  return {
+    store_query,
+    score_query,
+    review_cnt_query,
+    prefecture_query,
+    order_query,
+  };
+};
+
 app.get("/restaurants/english", async (req, res) => {
   console.log(
-    "query: ",
-    "store name: " + req.query.store_name,
-    "sort value: " + req.query.sort_value,
-    "rating min: " + req.query.rating_min,
-    "rating max: " + req.query.rating_max,
-    "review min: " + req.query.review_min,
-    "review max: " + req.query.review_max
+    `\nquery:
+    store name: ${req.query.store_name}
+    sort value: ${req.query.sort_value}
+    prefecture value: ${req.query.prefecture_value}
+    rating min: ${req.query.rating_min}
+    rating max: ${req.query.rating_max}
+    review min: ${req.query.review_min}
+    review max: ${req.query.review_max}\n`
   );
 
-  let store_name =
-    req.query.store_name === undefined ? "" : req.query.store_name;
-  let sort_value =
-    req.query.sort_value === undefined ? "Select Sort" : req.query.sort_value;
-  let rating_min =
-    req.query.rating_min === undefined ? 0 : req.query.rating_min;
-  let rating_max =
-    req.query.rating_max === undefined ? 5 : req.query.rating_max;
-  let review_min =
-    req.query.review_min === undefined ? 0 : req.query.review_min;
-  let review_max =
-    req.query.review_max === undefined ? 10000 : req.query.review_max;
+  const request = initializeRequest(req.query);
+  const query = handleQuery(request);
+  const restaurants = await Restaurant.findAll({
+    where: {
+      [Op.or]: query.store_query,
+      score: query.score_query,
+      review_cnt: query.review_cnt_query,
+      [Op.or]: query.prefecture_query,
+    },
+    order: query.order_query,
+  });
 
-  let sort_category = sort_dict.get(sort_value.split(" ")[0]);
-  let sort_direction = sort_dict.get(sort_value.split(" ")[1]);
-
-  if (!sort_value || sort_value === "Select Sort") {
-    sort_category = "score";
-    sort_direction = sequelize.literal("rand()");
-
-    const restaurants = await Restaurant.findAll({
-      where: {
-        [Op.or]: [
-          { store_name: { [Op.like]: "%" + store_name + "%" } },
-          { store_name_english: { [Op.like]: "%" + store_name + "%" } },
-        ],
-        score: { [Op.and]: { [Op.gte]: rating_min, [Op.lte]: rating_max } },
-        review_cnt: {
-          [Op.and]: { [Op.gte]: review_min, [Op.lte]: review_max },
-        },
-      },
-      order: sequelize.random(),
-    });
-
-    return res.send(restaurants);
-  } else {
-    const restaurants = await Restaurant.findAll({
-      where: {
-        [Op.or]: [
-          { store_name: { [Op.like]: "%" + store_name + "%" } },
-          { store_name_english: { [Op.like]: "%" + store_name + "%" } },
-        ],
-        score: { [Op.and]: { [Op.gte]: rating_min, [Op.lte]: rating_max } },
-        review_cnt: {
-          [Op.and]: { [Op.gte]: review_min, [Op.lte]: review_max },
-        },
-      },
-      order: [[sort_category, sort_direction]],
-    });
-
-    return res.send(restaurants);
-  }
+  return res.send(restaurants);
 });
 
 app.get("/restaurants/japanese/:id", async (req, res) => {
