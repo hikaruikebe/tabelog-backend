@@ -18,6 +18,30 @@ Restaurant.init(
     review_cnt: {
       type: DataTypes.INTEGER,
     },
+    tabelog_lunch_budget_min: {
+      type: DataTypes.INTEGER,
+    },
+    tabelog_lunch_budget_max: {
+      type: DataTypes.INTEGER,
+    },
+    tabelog_dinner_budget_min: {
+      type: DataTypes.INTEGER,
+    },
+    tabelog_dinner_budget_max: {
+      type: DataTypes.INTEGER,
+    },
+    customer_lunch_budget_min: {
+      type: DataTypes.INTEGER,
+    },
+    customer_lunch_budget_max: {
+      type: DataTypes.INTEGER,
+    },
+    customer_dinner_budget_min: {
+      type: DataTypes.INTEGER,
+    },
+    customer_dinner_budget_max: {
+      type: DataTypes.INTEGER,
+    },
     url: {
       type: DataTypes.STRING,
     },
@@ -26,6 +50,12 @@ Restaurant.init(
     },
     address: {
       type: DataTypes.STRING,
+    },
+    latitude: {
+      type: DataTypes.DECIMAL,
+    },
+    longitude: {
+      type: DataTypes.DECIMAL,
     },
     prefecture: {
       type: DataTypes.STRING,
@@ -43,6 +73,7 @@ Restaurant.init(
   {
     sequelize,
     modelName: "tabelog",
+    tableName: "tabelogs",
     timestamps: false,
   }
 );
