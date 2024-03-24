@@ -1,15 +1,12 @@
-const Joi = require("joi");
 const express = require("express");
 const cors = require("cors");
-const mysql = require("mysql");
 const app = express();
 app.use(cors());
 
-const { Op, sql, QueryTypes } = require("sequelize");
+const { Op } = require("sequelize");
 
 const sequelize = require("./database");
 const Restaurant = require("./restaurant");
-const Items = require("./items");
 
 sequelize.sync().then(() => console.log("db is ready"));
 
@@ -29,120 +26,86 @@ app.get("/status", (request, response) => {
   response.send(status);
 });
 
-const initializeRequest = (query) => {
-  let store_name = query.store_name === undefined ? "" : query.store_name;
-  let sort_value =
-    query.sort_value === undefined ? ["score", "random"] : query.sort_value;
-  let prefecture_value =
-    query.prefecture_value === undefined ? "random" : query.prefecture_value;
-  let rating_min = query.rating_min === undefined ? 0 : query.rating_min;
-  let rating_max = query.rating_max === undefined ? 5 : query.rating_max;
-  let review_min = query.review_min === undefined ? 0 : query.review_min;
-  let review_max = query.review_max === undefined ? 10000 : query.review_max;
+const initializeRequest = (req) => {
+  let res = {};
+  res.store_name = req.store_name === undefined ? "" : req.store_name;
+  res.sort_value =
+    req.sort_value === undefined ? ["score", "random"] : req.sort_value;
+  res.prefecture_value =
+    req.prefecture_value === undefined ? "random" : req.prefecture_value;
+  res.genre_value = req.genre_value === undefined ? "random" : req.genre_value;
+  res.rating_min = req.rating_min === undefined ? 0 : req.rating_min;
+  res.rating_max = req.rating_max === undefined ? 5 : req.rating_max;
+  res.review_min = req.review_min === undefined ? 0 : req.review_min;
+  res.review_max = req.review_max === undefined ? 10000 : req.review_max;
 
-  let lunch_min = query.lunch_min === undefined ? 0 : query.lunch_min;
-  let lunch_max = query.lunch_max === undefined ? 50 : query.lunch_max;
-  let dinner_min = query.dinner_min === undefined ? 0 : query.dinner_min;
-  let dinner_max = query.dinner_max === undefined ? 50 : query.dinner_max;
-  let latitude = query.latitude === undefined ? 0 : query.latitude;
-  let longitude = query.longitude === undefined ? 0 : query.longitude;
+  res.lunch_min = req.lunch_min === undefined ? 0 : req.lunch_min;
+  res.lunch_max = req.lunch_max === undefined ? 50 : req.lunch_max;
+  res.dinner_min = req.dinner_min === undefined ? 0 : req.dinner_min;
+  res.dinner_max = req.dinner_max === undefined ? 50 : req.dinner_max;
 
-  return {
-    store_name,
-    sort_value,
-    prefecture_value,
-    rating_min,
-    rating_max,
-    review_min,
-    review_max,
-    lunch_min,
-    lunch_max,
-    dinner_min,
-    dinner_max,
-    latitude,
-    longitude,
-  };
+  res.latitude = req.latitude === undefined ? 0 : req.latitude;
+  res.longitude = req.longitude === undefined ? 0 : req.longitude;
+
+  return res;
 };
 
-const handleQuery = (request) => {
-  store_name = request.store_name;
-  sort_value = request.sort_value;
-  prefecture_value = request.prefecture_value;
-  rating_min = request.rating_min;
-  rating_max = request.rating_max;
-  review_min = request.review_min;
-  review_max = request.review_max;
-  lunch_min = request.lunch_min;
-  lunch_max = request.lunch_max;
-  dinner_min = request.dinner_min;
-  dinner_max = request.dinner_max;
-  latitude = request.latitude;
-  longitude = request.longitude;
+const handleQuery = (req) => {
+  let res = {};
 
-  let store_query = [
-    { store_name: { [Op.like]: `%${store_name}%` } },
-    { store_name_english: { [Op.like]: `%${store_name}%` } },
-    { address: { [Op.like]: `%${store_name}%` } },
-    { address_english: { [Op.like]: `%${store_name}%` } },
+  res.store_query = [
+    { store_name: { [Op.like]: `%${req.store_name}%` } },
+    { store_name_english: { [Op.like]: `%${req.store_name}%` } },
+    { address: { [Op.like]: `%${req.store_name}%` } },
+    { address_english: { [Op.like]: `%${req.store_name}%` } },
   ];
-  let score_query = {
-    [Op.and]: { [Op.gte]: rating_min, [Op.lte]: rating_max },
+  res.score_query = {
+    [Op.and]: { [Op.gte]: req.rating_min, [Op.lte]: req.rating_max },
   };
-  let review_cnt_query = {
-    [Op.and]: { [Op.gte]: review_min, [Op.lte]: review_max },
+  res.review_cnt_query = {
+    [Op.and]: { [Op.gte]: req.review_min, [Op.lte]: req.review_max },
   };
-  let lunch_min_query = {
-    [Op.or]: [{ [Op.gte]: lunch_min * 1000 }, { [Op.is]: null }],
+  res.lunch_min_query = {
+    [Op.or]: [{ [Op.gte]: req.lunch_min * 1000 }, { [Op.is]: null }],
   };
-  let lunch_max_query = {
-    [Op.or]: [{ [Op.lte]: lunch_max * 1000 }, { [Op.is]: null }],
+  res.lunch_max_query = {
+    [Op.or]: [{ [Op.lte]: req.lunch_max * 1000 }, { [Op.is]: null }],
   };
-  let dinner_min_query = {
-    [Op.or]: [{ [Op.gte]: dinner_min * 1000 }, { [Op.is]: null }],
+  res.dinner_min_query = {
+    [Op.or]: [{ [Op.gte]: req.dinner_min * 1000 }, { [Op.is]: null }],
   };
-  let dinner_max_query = {
-    [Op.or]: [{ [Op.lte]: dinner_max * 1000 }, { [Op.is]: null }],
+  res.dinner_max_query = {
+    [Op.or]: [{ [Op.lte]: req.dinner_max * 1000 }, { [Op.is]: null }],
   };
-  // let dinner_query = {
-  //   [Op.or]: [
-  //     {
-  //       [Op.and]: [
-  //         { [Op.gte]: dinner_min * 1000 },
-  //         { [Op.lte]: dinner_max * 1000 },
-  //       ],
-  //     },
-  //     { [Op.is]: null },
-  //   ],
-  // };
 
-  let prefecture_query = { prefecture: { [Op.like]: "%%" } };
-  if (prefecture_value && prefecture_value != "random") {
-    prefecture_query = [];
-    for (const prefecture of prefecture_value) {
-      prefecture_query.push({
+  res.prefecture_query = { prefecture: { [Op.like]: "%%" } };
+  if (req.prefecture_value && req.prefecture_value != "random") {
+    res.prefecture_query = [];
+    for (const prefecture of req.prefecture_value) {
+      res.prefecture_query.push({
         prefecture: { [Op.like]: `%${prefecture.value}%` },
       });
     }
   }
 
-  let sort_category = sort_value[0];
-  let sort_direction = sort_value[1];
-  let order_query = sequelize.random();
-  if (sort_value && sort_direction != "random") {
-    order_query = [[sort_category, sort_direction]];
+  res.genre_query = { genre: { [Op.like]: "%%" } };
+  if (req.genre_value && req.genre_value != "random") {
+    res.genre_query = [];
+    for (const genre of req.genre_value) {
+      res.genre_query.push({
+        genre: { [Op.like]: `%${genre.value}%` },
+      });
+    }
   }
 
-  return {
-    store_query,
-    score_query,
-    review_cnt_query,
-    lunch_min_query,
-    lunch_max_query,
-    dinner_min_query,
-    dinner_max_query,
-    prefecture_query,
-    order_query,
-  };
+  const sort_category = req.sort_value[0];
+  const sort_direction = req.sort_value[1];
+  res.order_query = sequelize.random();
+  if (req.sort_value && sort_direction != "random") {
+    res.order_query = [[sort_category, sort_direction]];
+  }
+
+  return res;
 };
 
 app.get("/restaurants/english", async (req, res) => {
@@ -151,6 +114,7 @@ app.get("/restaurants/english", async (req, res) => {
     store name: ${req.query.store_name}
     sort value: ${req.query.sort_value}
     prefecture value: ${req.query.prefecture_value}
+    genre value: ${req.query.genre_value}
     rating min: ${req.query.rating_min}\t\trating max: ${req.query.rating_max}
     review min: ${req.query.review_min}\t\treview max: ${req.query.review_max}
     latitude: ${req.query.latitude}\t\tlongitude: ${req.query.longitude}
@@ -162,6 +126,8 @@ app.get("/restaurants/english", async (req, res) => {
     }\n`
   );
 
+  const latitude = req.query.latitude;
+  const longitude = req.query.longitude;
   const page = parseInt(req.query.page);
   const limit = parseInt(req.query.limit);
 
@@ -189,6 +155,7 @@ app.get("/restaurants/english", async (req, res) => {
       [Op.and]: [
         { [Op.or]: query.store_query },
         { [Op.or]: query.prefecture_query },
+        { [Op.or]: query.genre_query },
       ],
     },
     order: query.order_query,
@@ -198,53 +165,3 @@ app.get("/restaurants/english", async (req, res) => {
 
   return res.send(restaurants);
 });
-
-// app.get("/restaurants/japanese/:id", async (req, res) => {
-//   const schema = Joi.object({
-//     name: Joi.string().min(1).required(),
-//   });
-
-//   const valid = schema.validate(req.body);
-
-//   const requestedId = req.params.id;
-//   const requestedRestaurant = await Restaurant.findOne({
-//     where: { store_name: requestedId },
-//   });
-//   res.send(requestedRestaurant);
-// });
-
-// app.get("/restaurants/english/:id", async (req, res) => {
-//   const schema = Joi.object({
-//     name: Joi.string().min(1).required(),
-//   });
-
-//   const requestedId = req.params.id;
-
-//   const requestedRestaurant = await Restaurant.findAll({
-//     where: {
-//       store_name_english: {
-//         [Op.like]: `%${requestedId}%`,
-//       },
-//     },
-//   });
-
-//   if (requestedRestaurant == null) {
-//     return res.send(new Restaurant({ store_name: "no match" }));
-//   }
-//   return res.send(requestedRestaurant);
-// });
-
-// app.get("/restaurants/", (req, res) => {
-//   const id = req.params;
-//   const key = req.query;
-
-//   res.status(200).json({ info: "preset text" });
-// });
-
-// app.get("/", (req, res) => {
-//   const parcel = req.body;
-//   if (!parcel) {
-//     return res.status(400);
-//   }
-//   res.status(200).send({ status: "received" });
-// });

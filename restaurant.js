@@ -60,6 +60,9 @@ Restaurant.init(
     prefecture: {
       type: DataTypes.STRING,
     },
+    genre: {
+      type: DataTypes.STRING,
+    },
     address_english: {
       type: DataTypes.STRING,
     },
