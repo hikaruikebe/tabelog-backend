@@ -135,16 +135,6 @@ app.get("/restaurants/english", async (req, res) => {
   const query = handleQuery(request);
 
   const restaurants = await Restaurant.findAll({
-    attributes: {
-      include: [
-        [
-          sequelize.literal(
-            `(6371 * acos(cos(radians(${latitude})) * cos(radians(latitude)) * cos(radians(longitude) - radians(${longitude})) + sin(radians(${latitude})) * sin(radians(latitude))))`
-          ),
-          "distance",
-        ],
-      ],
-    },
     where: {
       score: query.score_query,
       review_cnt: query.review_cnt_query,
@@ -158,10 +148,22 @@ app.get("/restaurants/english", async (req, res) => {
         { [Op.or]: query.genre_query },
       ],
     },
+    attributes: {
+      include: [
+        [
+          sequelize.literal(
+            `(6371 * acos(cos(radians(${latitude})) * cos(radians(latitude)) * cos(radians(longitude) - radians(${longitude})) + sin(radians(${latitude})) * sin(radians(latitude))))`
+          ),
+          "distance",
+        ],
+      ],
+    },
     order: query.order_query,
     limit: limit,
     offset: (page - 1) * limit,
   });
 
+  // res.json(restaurants);
+  console.log(restaurants.length);
   return res.send(restaurants);
 });
