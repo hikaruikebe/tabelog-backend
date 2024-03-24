@@ -148,6 +148,10 @@ app.get("/restaurants/english", async (req, res) => {
         { [Op.or]: query.genre_query },
       ],
     },
+
+    order: query.order_query,
+    limit: limit,
+    offset: (page - 1) * limit,
     attributes: {
       include: [
         [
@@ -158,9 +162,6 @@ app.get("/restaurants/english", async (req, res) => {
         ],
       ],
     },
-    order: query.order_query,
-    limit: limit,
-    offset: (page - 1) * limit,
   });
 
   // res.json(restaurants);
